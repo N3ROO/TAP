@@ -31,6 +31,7 @@ void print_heap(heap h, char format[]) {
 
   for (i = 0; i < k; i++)
     printf("---");
+  
   printf("\n\n");
 }
 
