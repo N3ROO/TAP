@@ -62,13 +62,13 @@ int main(int argc, char *argv[]) {
   }
 
   for (i = 0; i < n; i++) {
-    S[i] = *(int *)heap_pop(h);
+    void* val = heap_pop(h);
+    S[i] = *(int *)val;
     printf("pop ");
     printf(fmt, S[i]);
     printf("\n");
     print_heap(h, fmt);
   }
-
   printf("sorted array: ");
   for (i = 0; i < n; i++)
     printf(fmt, S[i]);

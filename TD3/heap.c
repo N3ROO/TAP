@@ -30,7 +30,7 @@ bool heap_empty(heap h) {
 bool heap_add(heap h, void *object) {
   
   // Dans un premier temps, on vérifie s'il y a de la place
-  if(h->n == h->nmax) return false;
+  if(h->n == h->nmax) return true;
 
   // On peut ajouter l'élement à la fin
   h->n ++;
@@ -49,7 +49,7 @@ bool heap_add(heap h, void *object) {
     i = i/2;
   }
 
-  return true;
+  return false;
 }
 
 void *heap_top(heap h) {
@@ -73,7 +73,7 @@ void *heap_pop(heap h) {
   int index = 1;
 
   void * parent = h->array[index];
-  void * left   = h->array[index*2+1];
+  void * left   = h->array[index*2];
   void * right  = h->array[index*2+1];
   
   while((left < parent || right < parent) && index < h->n)
