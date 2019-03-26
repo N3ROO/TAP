@@ -11,14 +11,11 @@ heap heap_create(int k, int (*f)(const void *, const void *)) {
   h->array = malloc((k+1) * sizeof(void*));
   h->f = f;
 
-  // printf("avant\n");
-  // int d = f((void*)1, (void*)2);
-  // printf("après\n");
-
   return h;
 }
 
 void heap_destroy(heap h) {
+  for(int i = 0; i < h->n; i ++) free(h->array[i]);
   free(h->array);
   free(h);
 }
@@ -38,7 +35,7 @@ bool heap_add(heap h, void *object) {
 
   // Maintenant, on fait des "flips" en remontant
   int i = h->n;
-  while(i != 1 && h->array[i/2] > h->array[i])
+  while(i != 1 && h->f(h->array[i/2], h->array[i]) > 0)
   {
     // Si la valeur du père est plus petite que la valeur du fils, on "flip"
     void* tmp = h->array[i/2];

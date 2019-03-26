@@ -22,7 +22,7 @@ double hvo(position s, position t, grid *G){
 
 
 // Heuristique "alpha x vol_d'oiseau" pour A*.
-static double alpha=0; // 0 = h0, 1 = hvo, 2 = approximation ...
+static double alpha=0.5; // 0 = h0, 1 = hvo, 2 = approximation ...
 double halpha(position s, position t, grid *G) {
   return alpha*hvo(s,t,G);
 }
@@ -85,19 +85,21 @@ double weight[]={
 void A_star(grid G, heuristic h){
 
   // On initialise nos variables
-  int pindex = -1;
-  node** P   = malloc(100 * sizeof(node));   // Sommets visités
-  heap Q     = heap_create(100, compareNodes); // Sommets en train d'être visités
+  heap Q = heap_create(G.X * G.Y, compareNodes); // Sommets en train d'être visités
 
   // On ajoute le noeud s à Q
-  node start = malloc(sizeof(node));
-  start->pos = G.start;
+  node start = malloc(sizeof(*start));
   start->parent = NULL;
+  start->pos = G.start;
   start->cost = 0;
-  start->score = 0;
+  start->score = start->cost + h(G.start, G.end, &G);
   heap_add(Q, start);
+  
+  G.mark[start->pos.x][start->pos.y] = M_FRONT;
 
-  while(!heap_empty(Q))
+  bool pathFound = false;
+
+  while(!heap_empty(Q) && !pathFound)
   {
     // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
     node u = heap_pop(Q);
@@ -114,36 +116,40 @@ void A_star(grid G, heuristic h){
         drawGrid(G);
         parent = parent->parent; 
       }
+      pathFound = true;
     }
+    if(pathFound) continue;
 
-    // Ajouter u à P
-    G.mark[u->pos.x][u->pos.y] = M_USED;
-    P[pindex++] = &u;
-    drawGrid(G);
+    // Si u ∈ P, continuer la boucle, sinon l’ajouter à P
+    if(G.mark[u->pos.x][u->pos.y] == M_USED){
+      G.mark[u->pos.x][u->pos.y] = M_USED;
+      drawGrid(G);
+    }
 
     // Pour tout voisin v !appartient P de u
     for(int i = u->pos.x - 1; i <= u->pos.x + 1; i++){
       for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
         if(i == u->pos.x && j == u->pos.y) continue;
         if(G.mark[i][j] == M_USED) continue; // test appartenance à P
+        if(G.value[i][j] == V_WALL) continue;
 
-        node v = malloc(sizeof(node));
+        double c = u->cost + weight[G.value[i][j]];
+
+        node v = malloc(sizeof(*v));
         v->parent = u;
         v->pos.x = i;
         v->pos.y = j;
-        v->cost = G.mark[i][j] + hvo(G.start, G.end, &G);
+        v->cost = c;
+        v->score = c + h(v->pos, G.end, &G);
+
+        // on ajoute u à Q
+        G.mark[i][j] = M_FRONT;
+        heap_add(Q, v);
       }
     }
-    //    i. Poser c := cout[u] + ω(u, v)
-    //    ii. Si v < Q, ajouter v à Q
-    //    iii. Sinon, si c > cout[v] continuer la boucle
-    //    iv. cout[v] := c, parent[v] := u
-    // ...
   }
 
   // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
-
-  free(P);
   heap_destroy(Q);
 
   ;;;
@@ -228,7 +234,7 @@ int main(int argc, char *argv[]){
   update = false; // accélère les dessins répétitifs
 
   alpha=0;
-  A_star(G,halpha); // heuristique: h0, hvo, alpha*hvo
+  A_star(G, hvo); // heuristique: h0, hvo, alpha*hvo
 
   update = true; // force l'affichage de chaque dessin
   while (running) { // affiche le résultat et attend
