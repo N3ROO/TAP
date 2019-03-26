@@ -71,32 +71,36 @@ void *heap_pop(heap h) {
 
   // Maintenant on "fix" notre tas
   int index = 1;
-
-  void * parent = h->array[index];
-  void * left   = h->array[index*2];
-  void * right  = h->array[index*2+1];
+  bool parentHigher = false;
   
-  // FIX: 
-  // - need to put parent, left and right in while loop
-  // - need to check if left or right are not NULL
-
-  while((left < parent || right < parent) && index < h->n)
+  while(!parentHigher && index < h->n)
   {
-    if(left < parent)
-    {
-      // on inverse avec le premier fils
-      void* tmp = h->array[index];
-      h->array[index] = h->array[index*2];
-      h->array[index*2] = tmp;
-      index = index*2;
-    }
-    else
-    {
-      // on inverse avec le deuxieme fils
-      void* tmp = h->array[index];
-      h->array[index] = h->array[index*2+1];
-      h->array[index*2+1] = tmp;
-      index = index*2+1;
+    // Init values
+    void * parent = h->array[index];
+    void * left   = (index*2   <= h->n) ? h->array[index*2]   : NULL;
+    void * right  = (index*2+1 <= h->n) ? h->array[index*2+1] : NULL;
+    parentHigher = true;
+
+    if(left != NULL){
+      if(h->f(left, parent) < 0){
+        // on inverse avec le premier fils
+        void* tmp = h->array[index];
+        h->array[index] = h->array[index*2];
+        h->array[index*2] = tmp;
+        index = index*2;
+        parentHigher = false;
+      }
+      else if(right != NULL){
+        if(h->f(right, parent) < 0)
+        {
+          // on inverse avec le deuxieme fils
+          void* tmp = h->array[index];
+          h->array[index] = h->array[index*2+1];
+          h->array[index*2+1] = tmp;
+          index = index*2+1;
+          parentHigher = false;
+        }
+      }
     }
   }
 
