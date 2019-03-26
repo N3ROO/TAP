@@ -76,6 +76,10 @@ void *heap_pop(heap h) {
   void * left   = h->array[index*2];
   void * right  = h->array[index*2+1];
   
+  // FIX: 
+  // - need to put parent, left and right in while loop
+  // - need to check if left or right are not NULL
+
   while((left < parent || right < parent) && index < h->n)
   {
     if(left < parent)
