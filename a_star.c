@@ -84,10 +84,10 @@ double weight[]={
 
 void A_star(grid G, heuristic h){
 
-  // On initialise nos variables
-  heap Q = heap_create(G.X * G.Y, compareNodes); // Sommets en train d'être visités
+  // On initialise Q, qui contiendra les sommets à visiter
+  heap Q = heap_create(G.X * G.Y, compareNodes);
 
-  // On ajoute le noeud s à Q
+  // On ajoute le noeud de début à Q
   node start = malloc(sizeof(*start));
   start->parent = NULL;
   start->pos = G.start;
@@ -95,8 +95,10 @@ void A_star(grid G, heuristic h){
   start->score = start->cost + h(G.start, G.end, &G);
   heap_add(Q, start);
   
+  // On marque ce sommet comme étant le sommet en train d'être visité
   G.mark[start->pos.x][start->pos.y] = M_FRONT;
 
+  // Variable qui indique si un chemin a été trouvé
   bool pathFound = false;
 
   while(!heap_empty(Q) && !pathFound)
@@ -104,37 +106,49 @@ void A_star(grid G, heuristic h){
     // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
     node u = heap_pop(Q);
 
-    // Si u = t alors renvoyer le chemin de s à t grâce à la relation parent[u] : t → parent[t] → parent[parent[t]] → ··· → 
+    // Si u = t alors renvoyer le chemin de s à t grâce à la relation parent
     if(u->pos.x == G.end.x && u->pos.y == G.end.y){
+      // On marque le sommet courant comme faisant partie du chemin
       G.mark[u->pos.x][u->pos.y] = M_PATH;
       drawGrid(G);
 
-      // !!! reference issue ?
+      // On va parcourir tous les parents, et on va les marquer comme faisant
+      // partie du chemin
       node parent = u->parent;
       while(parent != NULL){
         G.mark[parent->pos.x][parent->pos.y] = M_PATH;
         drawGrid(G);
         parent = parent->parent; 
       }
+
+      // On pense bien à indiquer qu'un chemin a été trouvé pour terminer la boucle
       pathFound = true;
     }
+
     if(pathFound) continue;
 
-    // Si u ∈ P, continuer la boucle, sinon l’ajouter à P
+    // Si u appartient à P, on continue la boucle, sinon on l’ajouter à P
     if(G.mark[u->pos.x][u->pos.y] == M_USED){
+      // M_USED "modélise" l'appartenance à P. P étant l'ensemble des sommets visités
       G.mark[u->pos.x][u->pos.y] = M_USED;
       drawGrid(G);
     }
 
-    // Pour tout voisin v !appartient P de u
+    // Pour tout voisin v de u tel que :
+    // v n'appartient pas à P
+    // v n'est pas un mur
     for(int i = u->pos.x - 1; i <= u->pos.x + 1; i++){
       for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
-        if(i == u->pos.x && j == u->pos.y) continue;
-        if(G.mark[i][j] == M_USED) continue; // test appartenance à P
-        if(G.value[i][j] == V_WALL) continue;
 
+        if(i == u->pos.x && j == u->pos.y) continue; // test v = u
+        if(G.mark[i][j] == M_USED) continue; // test appartenance à P
+        if(G.value[i][j] == V_WALL) continue; // test v est un mur
+
+        // On calcule le cout : c'est le cout du noeud précèdent, plus le cout
+        // du noeud courant
         double c = u->cost + weight[G.value[i][j]];
 
+        // On peut créer le noeud v
         node v = malloc(sizeof(*v));
         v->parent = u;
         v->pos.x = i;
@@ -142,14 +156,22 @@ void A_star(grid G, heuristic h){
         v->cost = c;
         v->score = c + h(v->pos, G.end, &G);
 
-        // on ajoute u à Q
-        G.mark[i][j] = M_FRONT;
+        // on ajoute v à Q, et on le marque comme sommet en cours de visite
         heap_add(Q, v);
+        if(G.mark[i][j] == M_FRONT){
+          G.mark[i][j] = M_FRONT;
+          drawGrid(G);
+        }
       }
     }
   }
 
   // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
+  if(!pathFound){
+    printf("Aucun chemin trouvé\n");
+  }
+
+  // Dans tous les cas on libère la mémoire
   heap_destroy(Q);
 
   ;;;
@@ -208,11 +230,11 @@ int main(int argc, char *argv[]){
 
   // tester les différentes grilles et positions s->t ...
 
-  grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
+  //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
   // grid G = initGridPoints(32,24,V_WALL,0.2); // grille de points aléatoires
-  position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
-  // grid G = initGridLaby(64,48,4); // labyrinthe aléatoire
-  // grid G = initGridLaby(width/8,height/8,3); // labyrinthe aléatoire
+  grid G = initGridLaby(10,10,1); // labyrinthe aléatoire
+  //grid G = initGridLaby(width/8,height/8,3); // labyrinthe aléatoire
+  //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
   // grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
  
