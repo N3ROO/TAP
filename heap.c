@@ -67,6 +67,7 @@ void *heap_pop(heap h) {
   // On met le dernier élement à la tête de la liste
   h->array[1] = h->array[h->n];
   // On dit qu'il y a un élement en moins dans la liste (on vient d'écraser la tête)
+  h->array[h->n] = NULL;
   h->n --;
 
   // Maintenant on "fix" notre tas
@@ -81,25 +82,23 @@ void *heap_pop(heap h) {
     void * right  = (index*2+1 <= h->n) ? h->array[index*2+1] : NULL;
     parentHigher = true;
 
-    if(left != NULL){
-      if(h->f(left, parent) < 0){
-        // on inverse avec le premier fils
+    if(left != NULL && right == NULL && h->f(left, parent) < 0)
+    {
+      void* tmp = h->array[index];
+      h->array[index] = h->array[index*2];
+      h->array[index*2] = tmp;
+      index = index*2;
+      parentHigher = false;
+    }
+    else if(right != NULL)
+    {
+      int newIndex = h->f(left, right) < 0 ? index*2 : index*2 +1;
+      if(h->f(parent, h->array[newIndex]) > 0){
         void* tmp = h->array[index];
-        h->array[index] = h->array[index*2];
-        h->array[index*2] = tmp;
-        index = index*2;
+        h->array[index] = h->array[newIndex];
+        h->array[newIndex] = tmp;
+        index = newIndex;
         parentHigher = false;
-      }
-      else if(right != NULL){
-        if(h->f(right, parent) < 0)
-        {
-          // on inverse avec le deuxieme fils
-          void* tmp = h->array[index];
-          h->array[index] = h->array[index*2+1];
-          h->array[index*2+1] = tmp;
-          index = index*2+1;
-          parentHigher = false;
-        }
       }
     }
   }
