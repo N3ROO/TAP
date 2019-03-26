@@ -85,7 +85,7 @@ double weight[]={
 void A_star(grid G, heuristic h){
 
   // On initialise Q, qui contiendra les sommets à visiter
-  heap Q = heap_create(G.X * G.Y, compareNodes);
+  heap Q = heap_create(G.X * G.Y * 8, compareNodes);
 
   // On ajoute le noeud de début à Q
   node start = malloc(sizeof(*start));
@@ -128,7 +128,7 @@ void A_star(grid G, heuristic h){
     if(pathFound) continue;
 
     // Si u appartient à P, on continue la boucle, sinon on l’ajouter à P
-    if(G.mark[u->pos.x][u->pos.y] == M_USED){
+    if(G.mark[u->pos.x][u->pos.y] != M_USED){
       // M_USED "modélise" l'appartenance à P. P étant l'ensemble des sommets visités
       G.mark[u->pos.x][u->pos.y] = M_USED;
       drawGrid(G);
@@ -231,10 +231,9 @@ int main(int argc, char *argv[]){
   // tester les différentes grilles et positions s->t ...
 
   //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
-  // grid G = initGridPoints(32,24,V_WALL,0.2); // grille de points aléatoires
-  grid G = initGridLaby(10,10,1); // labyrinthe aléatoire
-  //grid G = initGridLaby(width/8,height/8,3); // labyrinthe aléatoire
   //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
+  //grid G = initGridPoints(64,48,V_WALL, 0.2); // grille de points aléatoires
+  grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
   // grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
  
