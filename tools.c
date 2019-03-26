@@ -1009,7 +1009,7 @@ void drawPath(point *V, int n, int *P, int k) {
   SDL_GL_SwapWindow(window);
 }
 
-// Dessine le graphe G, les points V et la tournée définie par P
+// Dessine le graphe G, les points V et la tournée définie par Q
 void drawGraph(point *V, int n, int *P, graph G) {
   static unsigned int last_tick = 0;
 
@@ -1027,7 +1027,7 @@ void drawGraph(point *V, int n, int *P, graph G) {
   glClear(GL_COLOR_BUFFER_BIT);
 
   // dessine G
-  if (V && G.list && (G.deg[0]>=0) && (mst&1)) {
+  if (G.list && (mst&1)) {
     glLineWidth(5.0);
     glColor3f(0, 0.4, 0); // Vert foncé
     for (int i = 0; i < n; i++)
