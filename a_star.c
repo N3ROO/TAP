@@ -27,7 +27,6 @@ double halpha(position s, position t, grid *G) {
   return alpha*hvo(s,t,G);
 }
 
-
 // Structure "noeud" pour le tas min Q.
 typedef struct node {
   position pos;        // position (.x,.y) d'un noeud u
@@ -36,6 +35,9 @@ typedef struct node {
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
+int compareNodes(const void *x, const void *y) {
+  return ((node) x)->score - ((node) y)->score;
+}
 
 // Les arêtes, connectant les cases voisines de la grille (on
 // considère le 8-voisinage), sont valuées par seulement certaines
@@ -81,6 +83,68 @@ double weight[]={
 // mettre G.mark[i][j] = M_FRONT au moment où vous l'ajoutez.
 
 void A_star(grid G, heuristic h){
+
+  // On initialise nos variables
+  int pindex = -1;
+  node** P   = malloc(100 * sizeof(node));   // Sommets visités
+  heap Q     = heap_create(100, compareNodes); // Sommets en train d'être visités
+
+  // On ajoute le noeud s à Q
+  node start = malloc(sizeof(node));
+  start->pos = G.start;
+  start->parent = NULL;
+  start->cost = 0;
+  start->score = 0;
+  heap_add(Q, start);
+
+  while(!heap_empty(Q))
+  {
+    // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
+    node u = heap_pop(Q);
+
+    // Si u = t alors renvoyer le chemin de s à t grâce à la relation parent[u] : t → parent[t] → parent[parent[t]] → ··· → 
+    if(u->pos.x == G.end.x && u->pos.y == G.end.y){
+      G.mark[u->pos.x][u->pos.y] = M_PATH;
+      drawGrid(G);
+
+      // !!! reference issue ?
+      node parent = u->parent;
+      while(parent != NULL){
+        G.mark[parent->pos.x][parent->pos.y] = M_PATH;
+        drawGrid(G);
+        parent = parent->parent; 
+      }
+    }
+
+    // Ajouter u à P
+    G.mark[u->pos.x][u->pos.y] = M_USED;
+    P[pindex++] = &u;
+    drawGrid(G);
+
+    // Pour tout voisin v !appartient P de u
+    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i++){
+      for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
+        if(i == u->pos.x && j == u->pos.y) continue;
+        if(G.mark[i][j] == M_USED) continue; // test appartenance à P
+
+        node v = malloc(sizeof(node));
+        v->parent = u;
+        v->pos.x = i;
+        v->pos.y = j;
+        v->cost = G.mark[i][j] + hvo(G.start, G.end, &G);
+      }
+    }
+    //    i. Poser c := cout[u] + ω(u, v)
+    //    ii. Si v < Q, ajouter v à Q
+    //    iii. Sinon, si c > cout[v] continuer la boucle
+    //    iv. cout[v] := c, parent[v] := u
+    // ...
+  }
+
+  // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
+
+  free(P);
+  heap_destroy(Q);
 
   ;;;
   // Pensez à dessiner la grille avec drawGrid(G) à chaque fois que
