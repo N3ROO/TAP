@@ -133,7 +133,6 @@ void A_star(grid G, heuristic h){
       G.mark[u->pos.x][u->pos.y] = M_USED;
       drawGrid(G);
     }
-
     // Pour tout voisin v de u tel que :
     // v n'appartient pas à P
     // v n'est pas un mur
@@ -154,11 +153,11 @@ void A_star(grid G, heuristic h){
         v->pos.x = i;
         v->pos.y = j;
         v->cost = c;
-        v->score = c + h(v->pos, G.end, &G);
+        v->score = v->cost + h(v->pos, G.end, &G);
 
         // on ajoute v à Q, et on le marque comme sommet en cours de visite
         heap_add(Q, v);
-        if(G.mark[i][j] == M_FRONT){
+        if(G.mark[i][j] != M_FRONT){
           G.mark[i][j] = M_FRONT;
           drawGrid(G);
         }
@@ -169,6 +168,8 @@ void A_star(grid G, heuristic h){
   // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
   if(!pathFound){
     printf("Aucun chemin trouvé\n");
+  } else {
+    printf("Chemin trouvé\n");
   }
 
   // Dans tous les cas on libère la mémoire
@@ -230,10 +231,10 @@ int main(int argc, char *argv[]){
 
   // tester les différentes grilles et positions s->t ...
 
-  //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
-  //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
+  grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
+  position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
   //grid G = initGridPoints(64,48,V_WALL, 0.2); // grille de points aléatoires
-  grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  //grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
   // grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
  

@@ -1114,7 +1114,9 @@ void drawGrid(grid G) {
     if(!update){
       if(call_speed){
         if(call_count - last_call > call_per_frame) {
-          SDL_Delay(last_tick + 1000/frame_rate - current_tick);
+          int delay = last_tick + 1000/frame_rate - current_tick;
+          if(delay > 1)
+            SDL_Delay(last_tick + 1000/frame_rate - current_tick);
           current_tick = SDL_GetTicks();
         }
       }
