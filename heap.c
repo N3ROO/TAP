@@ -20,7 +20,7 @@ void heap_destroy(heap h) {
 }
 
 bool heap_empty(heap h) {
-  return (h->n == 0) ? true : false;
+  return (h->n == 0);
 }
 
 bool heap_add(heap h, void *object) {

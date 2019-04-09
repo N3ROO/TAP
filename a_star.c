@@ -101,6 +101,8 @@ void A_star(grid G, heuristic h){
   // Variable qui indique si un chemin a été trouvé
   bool pathFound = false;
 
+  int exploredNodes = 0;
+
   while(!heap_empty(Q) && !pathFound && running)
   {
     // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
@@ -144,6 +146,7 @@ void A_star(grid G, heuristic h){
 
         // On calcule le cout : c'est le cout du noeud précèdent, plus le cout
         // du noeud courant
+
         double c = u->cost + weight[G.value[i][j]];
 
         // On peut créer le noeud v
@@ -154,11 +157,17 @@ void A_star(grid G, heuristic h){
         v->cost = c;
         v->score = v->cost + h(v->pos, G.end, &G);
 
+        if( (i == u->pos.x - 1 || i == u->pos.x + 1) && (j == u->pos.y - 1 || j == u->pos.y + 1)){
+          // C'est un coin, donc on va dire que la diagonale coute un peu plus cher
+          v->score += 0.00001;
+        }
+        
         // on ajoute v à Q, et on le marque comme sommet en cours de visite
-        heap_add(Q, v);
-        if(G.mark[i][j] != M_FRONT){
+        if(G.mark[i][j] != M_FRONT)
+        {
+          heap_add(Q, v);
           G.mark[i][j] = M_FRONT;
-          drawGrid(G);
+          exploredNodes++;
         }
       }
     }
@@ -221,6 +230,10 @@ void A_star(grid G, heuristic h){
   ;;;
 }
 
+void A_star2(grid G, heuristic h){
+ // TODO
+}
+
 int main(int argc, char *argv[]){
 
   unsigned seed=time(NULL)%1000;
@@ -230,12 +243,13 @@ int main(int argc, char *argv[]){
 
   // tester les différentes grilles et positions s->t ...
 
-  grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
-  position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
+  //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
+  //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
   //grid G = initGridPoints(64,48,V_WALL, 0.2); // grille de points aléatoires
-  //grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  //grid G = initGridLaby(50, 50, 5); // labyrinthe aléatoire
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
-  // grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
+  //grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
  
   // pour ajouter à G des "régions" de différent types:
 
@@ -254,8 +268,8 @@ int main(int argc, char *argv[]){
   drawGrid(G); // dessin de la grille avant l'algo
   update = false; // accélère les dessins répétitifs
 
-  alpha=0;
-  A_star(G, hvo); // heuristique: h0, hvo, alpha*hvo
+  alpha=3;
+  A_star(G, halpha); // heuristique: h0, hvo, alpha*hvo
 
   update = true; // force l'affichage de chaque dessin
   while (running) { // affiche le résultat et attend
