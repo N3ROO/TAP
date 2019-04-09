@@ -15,14 +15,14 @@
 typedef struct{
   void* *array;
   int n, nmax;
-  int (*f)(const void*, const void*);
+  double (*f)(const void*, const void*);
 } *heap;
 
 
 // Crée un tas pouvant accueillir au plus k>0 objets avec une fonction
 // de comparaison f() prédéfinie. NB: La taille d'un objet pointé par
 // un pointeur h est sizeof(*h).
-heap heap_create(int k, int (*f)(const void *, const void *));
+heap heap_create(int k, double (*f)(const void *, const void *));
 
 
 // Détruit le tas h. On supposera h!=NULL. Attention ! Il s'agit de

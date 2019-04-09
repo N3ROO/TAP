@@ -32,10 +32,11 @@ typedef struct node {
   position pos;        // position (.x,.y) d'un noeud u
   double cost;         // coût[u]
   double score;        // score[u] = coût[u] + h(u,end)
+  int source;
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
-int compareNodes(const void *x, const void *y) {
+double compareNodes(const void *x, const void *y) {
   return ((node) x)->score - ((node) y)->score;
 }
 
@@ -122,6 +123,7 @@ void A_star(grid G, heuristic h){
         drawGrid(G);
         parent = parent->parent; 
       }
+      printf("cout=%g\n", u->cost);
 
       // On pense bien à indiquer qu'un chemin a été trouvé pour terminer la boucle
       pathFound = true;
@@ -135,6 +137,7 @@ void A_star(grid G, heuristic h){
       G.mark[u->pos.x][u->pos.y] = M_USED;
       drawGrid(G);
     }
+
     // Pour tout voisin v de u tel que :
     // v n'appartient pas à P
     // v n'est pas un mur
@@ -156,10 +159,9 @@ void A_star(grid G, heuristic h){
         v->pos.y = j;
         v->cost = c;
         v->score = v->cost + h(v->pos, G.end, &G);
-
-        if( (i == u->pos.x - 1 || i == u->pos.x + 1) && (j == u->pos.y - 1 || j == u->pos.y + 1)){
-          // C'est un coin, donc on va dire que la diagonale coute un peu plus cher
-          v->score += 0.00001;
+        
+        if(i == u->pos.x || j == u->pos.y){
+          v->score -= 0.00001;
         }
         
         // on ajoute v à Q, et on le marque comme sommet en cours de visite
@@ -180,58 +182,115 @@ void A_star(grid G, heuristic h){
     printf("Chemin trouvé\n");
   }
 
+  printf("Explored nodes = %i\n", exploredNodes);
+
   // Dans tous les cas on libère la mémoire
   heap_destroy(Q);
-
-  ;;;
-  // Pensez à dessiner la grille avec drawGrid(G) à chaque fois que
-  // possible, par exemple, lorsque vous ajoutez un sommet à P mais
-  // aussi lorsque vous reconstruisez le chemin à la fin de la
-  // fonction. Lorsqu'un sommet passe dans Q vous pourrez le marquer
-  // M_FRONT (dans son champs .mark) pour le distinguer des sommets de
-  // P (couleur différente).
-  ;;;
-  // Après avoir extrait un noeud de Q, il ne faut pas le détruire,
-  // sous peine de ne plus pouvoir reconstruire le chemin trouvé! Vous
-  // pouvez réfléchir à une solution simple pour libérer tous les
-  // noeuds devenus inutiles à la fin de la fonction. Une fonction
-  // createNode() peut simplifier votre code.
-  ;;;
-  // Les bords de la grille sont toujours constitués de murs (V_WALL) ce
-  // qui évite d'avoir à tester la validité des indices des positions
-  // (sentinelle).
-  ;;;
-  ;;;
-  // Améliorations quand vous aurez fini:
-  //
-  // (1) Une fois la cible atteinte, afficher son coût ainsi que le
-  // nombre de sommets visités (somme des .mark != M_NULL). Cela
-  // permettra de comparer facilement les différences d'heuristiques,
-  // h0() vs. hvo().
-  //
-  // (2) Le chemin a tendance à zizaguer, c'est-à-dire à utiliser
-  // aussi bien des arêtes horizontales que diagonales (qui ont le
-  // même coût), même pour des chemins en ligne droite. Essayer de
-  // rectifier ce problème d'esthétique en modifiant le calcul de
-  // score[v] de sorte qu'à coût[v] égale les arêtes (u,v)
-  // horizontales ou verticales soient favorisées.
-  //
-  // (3) Modifier votre implémentation du tas dans heap.c de façon à
-  // utiliser un tableau de taille variable, en utilisant realloc() et
-  // une stratégie "doublante": lorsqu'il n'y a pas plus assez de
-  // place dans le tableau, on double sa taille. On peut imaginer que
-  // l'ancien paramètre 'n' devienne non pas le nombre maximal
-  // d'éléments, mais la taille initial du tableau (comme par exemple
-  // n=4).
-  //
-  // (4) Gérer plus efficacement la mémoire en libérant les noeuds
-  // devenus inutiles.
-  //
-  ;;;
 }
 
 void A_star2(grid G, heuristic h){
- // TODO
+  // On initialise Q, qui contiendra les sommets à visiter
+  heap Q = heap_create(G.X * G.Y * 8, compareNodes);
+
+  // On ajoute le noeud de début à Q
+  node start = malloc(sizeof(*start));
+  start->parent = NULL;
+  start->pos = G.start;
+  start->cost = 0;
+  start->score = start->cost + h(G.start, G.end, &G);
+  start->source = 1;
+  heap_add(Q, start);
+
+  node end = malloc(sizeof(*start));
+  end->parent = NULL;
+  end->pos = G.end;
+  end->cost = 0;
+  end->score = end->cost + h(G.start, G.end, &G);
+  end->source = 1;
+  heap_add(Q, end);
+  
+  // On marque ce sommet comme étant le sommet en train d'être visité
+  G.mark[start->pos.x][start->pos.y] = M_FRONT;
+  G.mark[end->pos.x][end->pos.y] = M_FRONT;
+
+  // Variable qui indique si un chemin a été trouvé
+  bool pathFound = false;
+
+  // Nombre de noeuds explorés
+  int exploredNodes = 0;
+
+  while(!heap_empty(Q) && !pathFound && running)
+  {
+    // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
+    node u = heap_pop(Q);
+
+    // Si on rencontre un noeud de l'autre ensemble, alors on connecte les deux ensemble et on a fini
+    if((u->source == 1) ? G.mark[u->pos.x][u->pos.y] == M_USED : G.mark[u->pos.x][u->pos.y] == M_USED2){
+      // TODO
+      pathFound = true;
+    }
+
+    if(pathFound) continue;
+
+    // On ajoute u à son ensemble
+    if(u->source){
+      G.mark[u->pos.x][u->pos.y] = M_USED2;
+    }else{
+      G.mark[u->pos.x][u->pos.y] = M_USED;
+    }
+    drawGrid(G);
+    
+    // Pour tout voisin v de u tel que :
+    // v n'appartient pas à P
+    // v n'est pas un mur
+    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i ++){
+      for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
+
+        if(u->source == 0 && G.mark[i][j] == M_USED) continue; // test appartenance à l'ensemble
+        if(u->source == 1 && G.mark[i][j] == M_USED2) continue; // test appartenance à l'ensemble
+        if(G.value[i][j] == V_WALL) continue; // test v est un mur
+
+        // On calcule le cout : c'est le cout du noeud précèdent, plus le cout
+        // du noeud courant
+
+        double c = u->cost + weight[G.value[i][j]];
+
+        // On peut créer le noeud v
+        node v = malloc(sizeof(*v));
+        v->parent = u;
+        v->pos.x = i;
+        v->pos.y = j;
+        v->cost = c;
+        v->source = u->source;
+        v->score = v->cost +/* (v->source == )?*/ h(v->pos, G.end, &G);
+
+        if( (i == u->pos.x - 1 || i == u->pos.x + 1) && (j == u->pos.y - 1 || j == u->pos.y + 1)){
+          // C'est un coin, donc on va dire que la diagonale coute un peu plus cher
+          v->score += 0.000001;
+        }
+        
+        // on ajoute v à Q, et on le marque comme sommet en cours de visite
+        if(G.mark[i][j] != M_FRONT && G.mark[i][j] == M_NULL)
+        {
+          heap_add(Q, v);
+          G.mark[i][j] = M_FRONT;
+          exploredNodes++;
+        }
+      }
+    }
+  }
+
+  // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
+  if(!pathFound){
+    printf("Aucun chemin trouvé\n");
+  } else {
+    printf("Chemin trouvé\n");
+  }
+
+  printf("Explored nodes = %i\n", exploredNodes);
+
+  // Dans tous les cas on libère la mémoire
+  heap_destroy(Q);
 }
 
 int main(int argc, char *argv[]){
@@ -243,13 +302,13 @@ int main(int argc, char *argv[]){
 
   // tester les différentes grilles et positions s->t ...
 
-  //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
+  grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
   //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
   //grid G = initGridPoints(64,48,V_WALL, 0.2); // grille de points aléatoires
-  grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  //grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
   //grid G = initGridLaby(50, 50, 5); // labyrinthe aléatoire
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
-  //grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
+  //grid G = initGridFile("m.txt"); // grille à partir d'un fichier
  
   // pour ajouter à G des "régions" de différent types:
 
