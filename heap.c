@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-heap heap_create(int k, double (*f)(const void *, const void *)) {
+heap heap_create(int k, int (*f)(const void *, const void *)) {
   
   heap h = malloc(sizeof(*h));
 

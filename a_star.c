@@ -36,8 +36,20 @@ typedef struct node {
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
-double compareNodes(const void *x, const void *y) {
-  return ((node) x)->score - ((node) y)->score;
+int compareNodes(const void *x, const void *y) {
+  int val;
+  int xscore = ((node) x)->score;
+  int yscore = ((node) y)->score;
+
+  if(xscore > yscore){
+    val = 1;
+  }else if(xscore < yscore){
+    val = -1;
+  }else{
+    val = 0;
+  }
+
+  return val;
 }
 
 // Les arêtes, connectant les cases voisines de la grille (on
