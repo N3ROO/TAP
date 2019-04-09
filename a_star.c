@@ -35,7 +35,7 @@ typedef struct node {
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
-double compareNodes(const void *x, const void *y) {
+int compareNodes(const void *x, const void *y) {
   return ((node) x)->score - ((node) y)->score;
 }
 
