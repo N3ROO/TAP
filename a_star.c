@@ -123,7 +123,6 @@ void A_star(grid G, heuristic h){
         drawGrid(G);
         parent = parent->parent; 
       }
-      printf("cout=%g\n", u->cost);
 
       // On pense bien à indiquer qu'un chemin a été trouvé pour terminer la boucle
       pathFound = true;
@@ -189,108 +188,7 @@ void A_star(grid G, heuristic h){
 }
 
 void A_star2(grid G, heuristic h){
-  // On initialise Q, qui contiendra les sommets à visiter
-  heap Q = heap_create(G.X * G.Y * 8, compareNodes);
-
-  // On ajoute le noeud de début à Q
-  node start = malloc(sizeof(*start));
-  start->parent = NULL;
-  start->pos = G.start;
-  start->cost = 0;
-  start->score = start->cost + h(G.start, G.end, &G);
-  start->source = 1;
-  heap_add(Q, start);
-
-  node end = malloc(sizeof(*start));
-  end->parent = NULL;
-  end->pos = G.end;
-  end->cost = 0;
-  end->score = end->cost + h(G.start, G.end, &G);
-  end->source = 1;
-  heap_add(Q, end);
-  
-  // On marque ce sommet comme étant le sommet en train d'être visité
-  G.mark[start->pos.x][start->pos.y] = M_FRONT;
-  G.mark[end->pos.x][end->pos.y] = M_FRONT;
-
-  // Variable qui indique si un chemin a été trouvé
-  bool pathFound = false;
-
-  // Nombre de noeuds explorés
-  int exploredNodes = 0;
-
-  while(!heap_empty(Q) && !pathFound && running)
-  {
-    // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
-    node u = heap_pop(Q);
-
-    // Si on rencontre un noeud de l'autre ensemble, alors on connecte les deux ensemble et on a fini
-    if((u->source == 1) ? G.mark[u->pos.x][u->pos.y] == M_USED : G.mark[u->pos.x][u->pos.y] == M_USED2){
-      // TODO
-      pathFound = true;
-    }
-
-    if(pathFound) continue;
-
-    // On ajoute u à son ensemble
-    if(u->source){
-      G.mark[u->pos.x][u->pos.y] = M_USED2;
-    }else{
-      G.mark[u->pos.x][u->pos.y] = M_USED;
-    }
-    drawGrid(G);
-    
-    // Pour tout voisin v de u tel que :
-    // v n'appartient pas à P
-    // v n'est pas un mur
-    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i ++){
-      for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
-
-        if(u->source == 0 && G.mark[i][j] == M_USED) continue; // test appartenance à l'ensemble
-        if(u->source == 1 && G.mark[i][j] == M_USED2) continue; // test appartenance à l'ensemble
-        if(G.value[i][j] == V_WALL) continue; // test v est un mur
-
-        // On calcule le cout : c'est le cout du noeud précèdent, plus le cout
-        // du noeud courant
-
-        double c = u->cost + weight[G.value[i][j]];
-
-        // On peut créer le noeud v
-        node v = malloc(sizeof(*v));
-        v->parent = u;
-        v->pos.x = i;
-        v->pos.y = j;
-        v->cost = c;
-        v->source = u->source;
-        v->score = v->cost +/* (v->source == )?*/ h(v->pos, G.end, &G);
-
-        if( (i == u->pos.x - 1 || i == u->pos.x + 1) && (j == u->pos.y - 1 || j == u->pos.y + 1)){
-          // C'est un coin, donc on va dire que la diagonale coute un peu plus cher
-          v->score += 0.000001;
-        }
-        
-        // on ajoute v à Q, et on le marque comme sommet en cours de visite
-        if(G.mark[i][j] != M_FRONT && G.mark[i][j] == M_NULL)
-        {
-          heap_add(Q, v);
-          G.mark[i][j] = M_FRONT;
-          exploredNodes++;
-        }
-      }
-    }
-  }
-
-  // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
-  if(!pathFound){
-    printf("Aucun chemin trouvé\n");
-  } else {
-    printf("Chemin trouvé\n");
-  }
-
-  printf("Explored nodes = %i\n", exploredNodes);
-
-  // Dans tous les cas on libère la mémoire
-  heap_destroy(Q);
+  // TODO
 }
 
 int main(int argc, char *argv[]){
