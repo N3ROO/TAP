@@ -35,7 +35,7 @@ typedef struct node {
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
-int compareNodes(const void *x, const void *y) {
+double compareNodes(const void *x, const void *y) {
   return ((node) x)->score - ((node) y)->score;
 }
 
@@ -101,7 +101,7 @@ void A_star(grid G, heuristic h){
   // Variable qui indique si un chemin a été trouvé
   bool pathFound = false;
 
-  while(!heap_empty(Q) && !pathFound)
+  while(!heap_empty(Q) && !pathFound && running)
   {
     // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
     node u = heap_pop(Q);
@@ -136,10 +136,9 @@ void A_star(grid G, heuristic h){
     // Pour tout voisin v de u tel que :
     // v n'appartient pas à P
     // v n'est pas un mur
-    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i++){
+    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i ++){
       for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
 
-        if(i == u->pos.x && j == u->pos.y) continue; // test v = u
         if(G.mark[i][j] == M_USED) continue; // test appartenance à P
         if(G.value[i][j] == V_WALL) continue; // test v est un mur
 
