@@ -1,4 +1,5 @@
-test_heap
-tsp
-a_star
+TDs/test_heap
+TDs/tsp
+TDs/a_star
 .vscode/
+
