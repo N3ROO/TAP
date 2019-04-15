@@ -42,14 +42,14 @@ paire algo_naif(point *P, int n)
 
   // On va parcourir toutes les paires possibles, et les comparer
   // avec la paire la plus proche
-  for(int i = 0; i < n; i ++) // Amélioration possible: i < n-1, mais on demande O(n²)
+  for(int i = 0; i < n - 1; i ++) // i < n-1 important pour éviter de traiter plusieurs fois le même point
   {
-    for(int j = 0; j < n; j ++) // Amélioration possible: j = i + 1, mais on demande O(n²)
+    for(int j = i + 1; j < n; j ++) // j = i + 1 important pour la même raison
     {
       // On récupère la paire (en constant pour dire explicitement
       // qu'on ne va pas modifier les valeurs)
-      const point a = P[0];
-      const point b = P[1];
+      const point a = P[i];
+      const point b = P[j];
 
       // On la compare avec la meilleure
       if(dist(a, b) < dist(plus_proche.A, plus_proche.B)){
