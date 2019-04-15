@@ -32,11 +32,24 @@ typedef struct node {
   position pos;        // position (.x,.y) d'un noeud u
   double cost;         // coût[u]
   double score;        // score[u] = coût[u] + h(u,end)
+  int source;
   struct node* parent; // parent[u] = pointeur vers le père, NULL pour start
 } *node;
 
 int compareNodes(const void *x, const void *y) {
-  return ((node) x)->score - ((node) y)->score;
+  int val;
+  int xscore = ((node) x)->score;
+  int yscore = ((node) y)->score;
+
+  if(xscore > yscore){
+    val = 1;
+  }else if(xscore < yscore){
+    val = -1;
+  }else{
+    val = 0;
+  }
+
+  return val;
 }
 
 // Les arêtes, connectant les cases voisines de la grille (on
@@ -101,7 +114,9 @@ void A_star(grid G, heuristic h){
   // Variable qui indique si un chemin a été trouvé
   bool pathFound = false;
 
-  while(!heap_empty(Q) && !pathFound)
+  int exploredNodes = 0;
+
+  while(!heap_empty(Q) && !pathFound && running)
   {
     // Choisir u appartient à Q tel que le coût de u est minimum, puis le supprimer de q
     node u = heap_pop(Q);
@@ -137,15 +152,15 @@ void A_star(grid G, heuristic h){
     // Pour tout voisin v de u tel que :
     // v n'appartient pas à P
     // v n'est pas un mur
-    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i++){
+    for(int i = u->pos.x - 1; i <= u->pos.x + 1; i ++){
       for(int j = u->pos.y - 1; j <= u->pos.y + 1; j ++){
 
-        if(i == u->pos.x && j == u->pos.y) continue; // test v = u
         if(G.mark[i][j] == M_USED) continue; // test appartenance à P
         if(G.value[i][j] == V_WALL) continue; // test v est un mur
 
         // On calcule le cout : c'est le cout du noeud précèdent, plus le cout
         // du noeud courant
+
         double c = u->cost + weight[G.value[i][j]];
 
         // On peut créer le noeud v
@@ -154,13 +169,18 @@ void A_star(grid G, heuristic h){
         v->pos.x = i;
         v->pos.y = j;
         v->cost = c;
-        v->score = c + h(v->pos, G.end, &G);
-
+        v->score = v->cost + h(v->pos, G.end, &G);
+        
+        if(i == u->pos.x || j == u->pos.y){
+          v->score -= 0.00001;
+        }
+        
         // on ajoute v à Q, et on le marque comme sommet en cours de visite
-        heap_add(Q, v);
-        if(G.mark[i][j] == M_FRONT){
+        if(G.mark[i][j] != M_FRONT)
+        {
+          heap_add(Q, v);
           G.mark[i][j] = M_FRONT;
-          drawGrid(G);
+          exploredNodes++;
         }
       }
     }
@@ -169,56 +189,18 @@ void A_star(grid G, heuristic h){
   // Renvoyer l’erreur : " le chemin n’a pas été trouvé "
   if(!pathFound){
     printf("Aucun chemin trouvé\n");
+  } else {
+    printf("Chemin trouvé\n");
   }
+
+  printf("Explored nodes = %i\n", exploredNodes);
 
   // Dans tous les cas on libère la mémoire
   heap_destroy(Q);
+}
 
-  ;;;
-  // Pensez à dessiner la grille avec drawGrid(G) à chaque fois que
-  // possible, par exemple, lorsque vous ajoutez un sommet à P mais
-  // aussi lorsque vous reconstruisez le chemin à la fin de la
-  // fonction. Lorsqu'un sommet passe dans Q vous pourrez le marquer
-  // M_FRONT (dans son champs .mark) pour le distinguer des sommets de
-  // P (couleur différente).
-  ;;;
-  // Après avoir extrait un noeud de Q, il ne faut pas le détruire,
-  // sous peine de ne plus pouvoir reconstruire le chemin trouvé! Vous
-  // pouvez réfléchir à une solution simple pour libérer tous les
-  // noeuds devenus inutiles à la fin de la fonction. Une fonction
-  // createNode() peut simplifier votre code.
-  ;;;
-  // Les bords de la grille sont toujours constitués de murs (V_WALL) ce
-  // qui évite d'avoir à tester la validité des indices des positions
-  // (sentinelle).
-  ;;;
-  ;;;
-  // Améliorations quand vous aurez fini:
-  //
-  // (1) Une fois la cible atteinte, afficher son coût ainsi que le
-  // nombre de sommets visités (somme des .mark != M_NULL). Cela
-  // permettra de comparer facilement les différences d'heuristiques,
-  // h0() vs. hvo().
-  //
-  // (2) Le chemin a tendance à zizaguer, c'est-à-dire à utiliser
-  // aussi bien des arêtes horizontales que diagonales (qui ont le
-  // même coût), même pour des chemins en ligne droite. Essayer de
-  // rectifier ce problème d'esthétique en modifiant le calcul de
-  // score[v] de sorte qu'à coût[v] égale les arêtes (u,v)
-  // horizontales ou verticales soient favorisées.
-  //
-  // (3) Modifier votre implémentation du tas dans heap.c de façon à
-  // utiliser un tableau de taille variable, en utilisant realloc() et
-  // une stratégie "doublante": lorsqu'il n'y a pas plus assez de
-  // place dans le tableau, on double sa taille. On peut imaginer que
-  // l'ancien paramètre 'n' devienne non pas le nombre maximal
-  // d'éléments, mais la taille initial du tableau (comme par exemple
-  // n=4).
-  //
-  // (4) Gérer plus efficacement la mémoire en libérant les noeuds
-  // devenus inutiles.
-  //
-  ;;;
+void A_star2(grid G, heuristic h){
+  // TODO
 }
 
 int main(int argc, char *argv[]){
@@ -230,12 +212,13 @@ int main(int argc, char *argv[]){
 
   // tester les différentes grilles et positions s->t ...
 
-  //grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
+  grid G = initGridPoints(80,60,V_FREE,1); // grille uniforme
   //position s={G.X/4,G.Y/2}, t={G.X/2,G.Y/4}; G.start=s; G.end=t; // s->t
   //grid G = initGridPoints(64,48,V_WALL, 0.2); // grille de points aléatoires
-  grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  //grid G = initGridLaby(15, 15, 5); // labyrinthe aléatoire
+  //grid G = initGridLaby(50, 50, 5); // labyrinthe aléatoire
   // position tmp; SWAP(G.start,G.end,tmp); // t->s (inverse source et cible)
-  // grid G = initGridFile("mygrid.txt"); // grille à partir d'un fichier
+  //grid G = initGridFile("m.txt"); // grille à partir d'un fichier
  
   // pour ajouter à G des "régions" de différent types:
 
@@ -254,8 +237,8 @@ int main(int argc, char *argv[]){
   drawGrid(G); // dessin de la grille avant l'algo
   update = false; // accélère les dessins répétitifs
 
-  alpha=0;
-  A_star(G, hvo); // heuristique: h0, hvo, alpha*hvo
+  alpha=3;
+  A_star(G, halpha); // heuristique: h0, hvo, alpha*hvo
 
   update = true; // force l'affichage de chaque dessin
   while (running) { // affiche le résultat et attend
