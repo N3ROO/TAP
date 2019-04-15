@@ -7,7 +7,7 @@
 
 static inline int min(int x, int y) { return (x < y) ? x : y; }
 
-int fcmp_min(const void *x, const void *y) { return *(int *)x - *(int *)y; }
+double fcmp_min(const void *x, const void *y) { return *(int *)x - *(int *)y; }
 
 void print_heap(heap h, char format[]) {
 

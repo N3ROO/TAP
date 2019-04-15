@@ -9,7 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////
 
 // nombres d'appels au dessin de la grille attendus par seconde
-static unsigned long call_speed = 100;
+static unsigned long call_speed = 1 << 7;
 
 static bool mouse_ldown = false; // bouton souris gauche, vrai si enfoncé
 static bool mouse_rdown = false; // boutons souris droit, vrai si enfoncé
@@ -127,16 +127,22 @@ static void zoomMouse(double s){
 
 // set drawGrid call speed
 void speedUp() {
+  if (!call_speed)
+    call_speed = 1;
   if ((call_speed << 1) != 0)
     call_speed <<= 1;
 }
 
 void speedDown() {
   call_speed >>= 1;
+  if (!call_speed)
+    call_speed = 1;
 }
 
 void speedSet(unsigned long speed) {
   call_speed = speed;
+  if (!call_speed)
+    call_speed = 1;
 }
 
 unsigned long speedMax() {
@@ -262,8 +268,8 @@ static RGB color[] = {
     {0xFF, 0x88, 0x28}, // C_END
     {0x99, 0xAA, 0xCC}, // C_FINAL
     {0xFF, 0xFF, 0x80}, // C_END_WALL
-    {0xC0, 0x4F, 0x16}, // M_USED2
-    {0x66, 0x12, 0x66}, // C_FINAL2
+    {0x66, 0x12, 0x66}, // M_USED2
+    {0xC0, 0x4F, 0x16}, // C_FINAL2
 };
 
 // nombre de couleurs dans color[]
@@ -290,10 +296,14 @@ static void makeImage(grid *G) {
   RGB *I = gridImage, c;
   int k = 0, v, m, f;
   int fin = (G->mark[G->start.x][G->start.y] ==
-             M_PATH); // si le chemin a fini d'être construit
-  int debut = (G->mark[G->end.x][G->end.y] ==
-               M_PATH); // si le chemin commence à être construit
+             M_PATH && G->mark[G->end.x][G->end.y] ==
+             M_PATH); // si le chemin a fini d'être construit (les deux sont marqués)
 
+  int debut=0; // vrai ssi le chemin commence à être construit
+  for (int j = 0; j < G->Y && !debut; j++)
+    for (int i = 0; i < G->X && !debut; i++)
+      if(G->mark[i][j]==M_PATH) debut=1;
+  
   if (fin)
     update = false;
   if (debut == 0)
@@ -301,9 +311,11 @@ static void makeImage(grid *G) {
   if (debut)
     cpt++;
   if (debut && cpt == 1) {
-    update = true;
-    speedSet(16);
+    speedSet(sqrt(call_speed/4));
   }
+
+  double t1,t2,dmax = distLmax(G->start, G->end);
+  if (dmax == 0) dmax = 1E-10; // pour éviter la division par 0
 
   for (int j = 0; j < G->Y; j++)
     for (int i = 0; i < G->X; i++) {
@@ -331,21 +343,14 @@ static void makeImage(grid *G) {
           // C_FINAL(2) ou bien M_USED(2) et v si on est en train de
           // reconstruire le chemin
           position p = {.x = i, .y = j};
-          double t = distLmax(G->start, G->end);
-          if (t == 0)
-            t = 1E-10; // pour éviter la division par 0
-          if (debut && erase) {
-            t = 0.5 * cpt / t;
-            f = v;
-          } else {
-            t = distLmax(G->start, p) / t;
-            f = (m == M_USED) ? C_FINAL : C_FINAL2;
-          }
-          t = fmax(t, 0.0), t = fmin(t, 1.0);
-          c = color[m];
-          c.R += t * (color[f].R - color[m].R);
-          c.G += t * (color[f].G - color[m].G);
-          c.B += t * (color[f].B - color[m].B);
+	  t1 = (m == M_USED) ? distLmax(G->start, p) / dmax : distLmax(G->end, p) / dmax;
+          t1 = fmax(t1, 0.0), t1 = fmin(t1, 1.0);
+          t2 = (debut && erase)? 0.5 * cpt / dmax : 0;
+          t2 = fmin(t2, 1.0);
+	  f = (m == M_USED) ? C_FINAL : C_FINAL2;
+          c.R = t2*color[v].R + (1-t2) * (t1 * color[f].R + (1-t1)*color[m].R);
+          c.G = t2*color[v].G + (1-t2) * (t1 * color[f].G + (1-t1)*color[m].G);
+          c.B = t2*color[v].B + (1-t2) * (t1 * color[f].B + (1-t1)*color[m].B);
           break;
         }
         c = (m == M_NULL) ? color[v] : color[m];
@@ -638,14 +643,13 @@ grid initGridLaby(int x, int y, int w) {
   value[0] = 0;
   while (count < x * y) {
     int i0 = 0;
-    for (i0 = 0; i0 < x * y && value[i0] != -1; i0++)
-      ;
+    while (i0 < x * y && value[i0] != -1) i0++;
     value[i0] = i0 + 1;
     while (i0 < x * y) {
       int x0 = i0 / y;
       int y0 = i0 % y;
       while (true) {
-        int dir = rand() % 4;
+        int dir = random()&3; // pareil que random()%4
         switch (dir) {
         case 0:
           if (x0 <= 0)
@@ -1009,7 +1013,7 @@ void drawPath(point *V, int n, int *P, int k) {
   SDL_GL_SwapWindow(window);
 }
 
-// Dessine le graphe G, les points V et la tournée définie par Q
+// Dessine le graphe G, les points V et la tournée définie par P
 void drawGraph(point *V, int n, int *P, graph G) {
   static unsigned int last_tick = 0;
 
@@ -1027,7 +1031,7 @@ void drawGraph(point *V, int n, int *P, graph G) {
   glClear(GL_COLOR_BUFFER_BIT);
 
   // dessine G
-  if (G.list && (mst&1)) {
+  if (V && G.list && (G.deg[0]>=0) && (mst&1)) {
     glLineWidth(5.0);
     glColor3f(0, 0.4, 0); // Vert foncé
     for (int i = 0; i < n; i++)
@@ -1095,56 +1099,70 @@ static void drawGridImage(grid G){
   glDisable(GL_TEXTURE_2D);
 }
 
+void waitGridDelay(grid G, unsigned int delay, unsigned int frame_delay) {
+  const unsigned int last_tick = SDL_GetTicks();
+  unsigned int current_tick = SDL_GetTicks();
+
+  while(running && current_tick - last_tick < delay) {
+    handleEvent(false);
+    drawGridImage(G);
+    SDL_GL_SwapWindow(window);
+
+    if (delay - (current_tick - last_tick) > frame_delay)
+      SDL_Delay(frame_delay);
+    else
+      SDL_Delay(delay - (current_tick - last_tick));
+    current_tick = SDL_GetTicks();
+  }
+}
+
 void drawGrid(grid G) {
   static unsigned int last_tick = 0;
 
-  static unsigned int last_call = 0;
+  static unsigned int last_drawn_call = 0;
   static unsigned int call_count = 0;
 
   const unsigned int frame_rate = 50;
-
-  unsigned int call_per_frame = call_speed / frame_rate;
+  const unsigned int frame_delay = 1000 / frame_rate;
 
   call_count++;
 
-  unsigned int current_tick = SDL_GetTicks();
+  const unsigned int current_tick = SDL_GetTicks();
 
-  if (!call_speed || frame_rate < call_speed)
-  {
-    if(!update){
-      if(call_speed){
-        if(call_count - last_call > call_per_frame) {
-          SDL_Delay(last_tick + 1000/frame_rate - current_tick);
-          current_tick = SDL_GetTicks();
-        }
-      }
-    }
-    if(update || last_tick + 1000/frame_rate <= current_tick) {
-      makeImage(&G);
-      handleEvent(false);
+  unsigned int next_drawn_call = call_count;
 
-      drawGridImage(G);
+  if(!update)
+    next_drawn_call = last_drawn_call + call_speed / frame_rate;
 
-      // Affiche le résultat puis attend un certain délais
-      SDL_GL_SwapWindow(window);
-      last_tick = current_tick;
-      last_call = call_count;
-    }
-  }
-  else{
-    int delay = 1000/call_speed;
-    makeImage(&G);
-    while(current_tick - last_tick < delay) {
-      handleEvent(false);
-      drawGridImage(G);
+  if (next_drawn_call > call_count)
+    return;
 
-      // Affiche le résultat puis attend un certain délais
-      SDL_GL_SwapWindow(window);
-      SDL_Delay(1000/frame_rate);
-      current_tick = SDL_GetTicks();
-    }
-    last_tick = current_tick;
-  }
+  unsigned int delay = 0;
+  unsigned int elasped_tick = current_tick - last_tick;
+  unsigned int elasped_call = call_count - last_drawn_call;
+
+  if (elasped_call*1000 > elasped_tick * call_speed)
+    delay = elasped_call*1000 / call_speed - elasped_tick;
+
+  // ceci intervient quand call_speed diminue
+  // le choix suivant est raisonnable au vu de la vitesse des entrées
+  // utilisateur: on dessine la grille sans attendre
+  if (elasped_call > call_speed)
+    delay = 0;
+
+
+  if (!update)
+    waitGridDelay(G, delay, frame_delay);
+
+  makeImage(&G);
+  handleEvent(false);
+
+  drawGridImage(G);
+
+  // Affiche le résultat puis attend un certain délais
+  SDL_GL_SwapWindow(window);
+  last_tick = current_tick;
+  last_drawn_call = call_count;
 }
 
 bool handleEvent(bool wait_event) {

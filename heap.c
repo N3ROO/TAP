@@ -16,12 +16,11 @@ heap heap_create(int k, int (*f)(const void *, const void *)) {
 
 void heap_destroy(heap h) {
   for(int i = 0; i < h->n; i ++) free(h->array[i]);
-  free(h->array);
   free(h);
 }
 
 bool heap_empty(heap h) {
-  return (h->n == 0) ? true : false;
+  return (h->n == 0);
 }
 
 bool heap_add(heap h, void *object) {
